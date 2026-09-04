@@ -66,6 +66,11 @@
         return;
       }
       const my = ++gen;
+      // Chrome processes cancel() asynchronously: a speak() issued in the same
+      // tick lands while the queue is still draining and gets dropped on the
+      // floor — silently, with no error event. Only wait when there is actually
+      // something to cancel, so the common case stays instant.
+      const wasBusy = speaking || synth.speaking || synth.pending;
       try { synth.cancel(); } catch {}
       const parts = chunk(text);
       const voice = pickVoice();
@@ -97,7 +102,8 @@
         };
         synth.speak(u);
       };
-      sayNext();
+      if (wasBusy) setTimeout(sayNext, 80);
+      else sayNext();
     },
 
     cancel() {
@@ -150,11 +156,12 @@
       rate.max = MAX_RATE;
       rate.value = cfg().rate;
       this.showRate();
-      rate.addEventListener("input", (e) => this.setRate(+e.target.value));
-      // presets, because the speed you want is a thing you reach for often
-      FR.$$("#speech-presets button").forEach((b) =>
-        b.addEventListener("click", () => this.setRate(+b.dataset.rate))
-      );
+      // While dragging, only the label moves. Restarting the utterance on every
+      // "input" tick would cancel-and-respeak dozens of times a second and the
+      // voice would just stall. "change" fires once, on release (and once per
+      // press for the keyboard arrows), which is where the new rate is applied.
+      rate.addEventListener("input", (e) => this.setRate(+e.target.value, false));
+      rate.addEventListener("change", (e) => this.setRate(+e.target.value, true));
 
       // "Read aloud" mode toggle
       chip.addEventListener("click", () => {
@@ -180,20 +187,20 @@
     /* Changing speed mid-sentence should take effect now, not at the next one —
        otherwise it feels broken on a long paragraph. Re-speak from the top of
        the current sentence at the new rate. */
-    setRate(r) {
-      cfg().rate = Math.min(MAX_RATE, Math.max(0.5, r));
+    setRate(r, apply = true) {
+      cfg().rate = Math.round(Math.min(MAX_RATE, Math.max(0.5, r)) * 100) / 100;
       FR.saveSettings();
       FR.$("#speech-rate").value = cfg().rate;
       this.showRate();
+      // An utterance's rate is fixed once it starts, so the only way to hear the
+      // change now rather than at the next sentence is to re-speak this one.
+      if (!apply) return;
       if (FR.pace.running) FR.pace.resync();
       else if (speaking) this.speak(FR.app.activeText());
     },
 
     showRate() {
       FR.$("#speech-rate-val").textContent = fmtRate(cfg().rate);
-      FR.$$("#speech-presets button").forEach((b) =>
-        b.classList.toggle("is-active", Math.abs(+b.dataset.rate - cfg().rate) < 0.01)
-      );
     },
 
     applyChip() {
