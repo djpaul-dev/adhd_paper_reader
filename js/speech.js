@@ -11,6 +11,8 @@
   let speaking = false;
 
   const cfg = () => FR.settings.speech;
+  const MAX_RATE = 4;
+  const fmtRate = (r) => (Math.round(+r * 100) / 100).toString().replace(/\.0+$/, "") + "×";
 
   function chunk(text, max = 220) {
     const out = [];
@@ -83,7 +85,9 @@
         }
         const u = new SpeechSynthesisUtterance(parts[i++]);
         if (voice) { u.voice = voice; u.lang = voice.lang; }
-        u.rate = Math.min(2, Math.max(0.5, +cfg().rate || 1));
+        // The Web Speech spec allows 0.1–10. Most engines stay intelligible to
+        // about 4× and garble above that, so that is where this is capped.
+        u.rate = Math.min(MAX_RATE, Math.max(0.5, +cfg().rate || 1));
         u.onend = sayNext;
         u.onerror = (e) => {
           // "interrupted"/"canceled" just means we moved on deliberately
@@ -143,13 +147,14 @@
         FR.saveSettings();
       });
       const rate = FR.$("#speech-rate");
+      rate.max = MAX_RATE;
       rate.value = cfg().rate;
-      FR.$("#speech-rate-val").textContent = (+cfg().rate).toFixed(2).replace(/0$/, "") + "×";
-      rate.addEventListener("input", (e) => {
-        cfg().rate = +e.target.value;
-        FR.$("#speech-rate-val").textContent = (+cfg().rate).toFixed(2).replace(/0$/, "") + "×";
-        FR.saveSettings();
-      });
+      this.showRate();
+      rate.addEventListener("input", (e) => this.setRate(+e.target.value));
+      // presets, because the speed you want is a thing you reach for often
+      FR.$$("#speech-presets button").forEach((b) =>
+        b.addEventListener("click", () => this.setRate(+b.dataset.rate))
+      );
 
       // "Read aloud" mode toggle
       chip.addEventListener("click", () => {
@@ -170,6 +175,25 @@
 
       this.applyChip();
       window.addEventListener("beforeunload", () => this.cancel());
+    },
+
+    /* Changing speed mid-sentence should take effect now, not at the next one —
+       otherwise it feels broken on a long paragraph. Re-speak from the top of
+       the current sentence at the new rate. */
+    setRate(r) {
+      cfg().rate = Math.min(MAX_RATE, Math.max(0.5, r));
+      FR.saveSettings();
+      FR.$("#speech-rate").value = cfg().rate;
+      this.showRate();
+      if (FR.pace.running) FR.pace.resync();
+      else if (speaking) this.speak(FR.app.activeText());
+    },
+
+    showRate() {
+      FR.$("#speech-rate-val").textContent = fmtRate(cfg().rate);
+      FR.$$("#speech-presets button").forEach((b) =>
+        b.classList.toggle("is-active", Math.abs(+b.dataset.rate - cfg().rate) < 0.01)
+      );
     },
 
     applyChip() {

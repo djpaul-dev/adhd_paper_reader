@@ -324,6 +324,21 @@ code {
   border: 1px solid var(--line); background: var(--surface); color: var(--ink);
 }
 #wpm { width: 120px; accent-color: var(--accent); }
+#speech-rate { width: 110px; accent-color: var(--accent); }
+
+/* quick speed presets — the speed you want is a thing you reach for often */
+.rate-presets { display: flex; gap: 3px; }
+.rate-presets button {
+  padding: 4px 8px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink-soft); font-family: inherit; font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.rate-presets button:hover { color: var(--ink); }
+.rate-presets button.is-active {
+  background: var(--accent); color: var(--accent-ink);
+  border-color: transparent; font-weight: 700;
+}
 
 .segmented { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
 .seg-btn { padding: 6px 14px; border: none; background: var(--surface); color: var(--ink-soft); cursor: pointer; font-size: 13px; }

@@ -40,8 +40,13 @@
       if (FR.settings.speech.enabled && FR.speech.supported()) {
         FR.speech.speak(text, () => this.advance());
       } else {
+        const wpm = FR.settings.wpm;
         const words = Math.max(1, text.split(/\s+/).length);
-        const secs = Math.max(2.2, (words / FR.settings.wpm) * 60);
+        /* A short sentence still needs a beat to land, but the floor has to
+           scale with the setting — a fixed one means every speed past about
+           500 wpm behaves identically on short sentences. */
+        const floor = Math.max(0.35, 2.2 * (220 / wpm));
+        const secs = Math.max(floor, (words / wpm) * 60);
         this._timer = setTimeout(() => this.advance(), secs * 1000);
       }
     },

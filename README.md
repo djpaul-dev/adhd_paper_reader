@@ -47,12 +47,18 @@ Open `sample-paper.pdf` (included) to try it immediately.
 - **Reading ruler** — a band that follows your cursor and mutes everything else
   (**R**), in either mode.
 - **Read aloud** (**S**) — the browser's own speech synthesis reads the spotlighted
-  sentence. Pick a voice and speed; 🔊 in the bottom bar replays the current one.
+  sentence. Pick a voice, and a speed from **0.5× to 4×** — either from the
+  presets (1× / 1.5× / 2× / 2.5× / 3×) or the slider for anything between.
+  Changing speed takes effect on the sentence being read, not the next one.
+  Most voices stay clear to about 2.5× and distort past that, which is why the
+  presets stop there even though the slider does not. 🔊 in the bottom bar
+  replays the current sentence.
 - **Auto-pace** (**Space**) — one control: the chip is lit while it is running, and
   the speed slider appears with it. It advances on its own. With **Read aloud** on, the *voice* sets the
   pace: one sentence per utterance, and the spotlight moves when that sentence
   finishes — so the highlight and the audio are never out of step. With it off,
-  pacing falls back to a words-per-minute estimate. Skipping ahead or back while
+  pacing falls back to a words-per-minute estimate, adjustable from 100 to 1200
+  wpm. Skipping ahead or back while
   it runs does **not** stop it — it drops whatever was queued and picks up from
   the sentence you landed on. Only **pause** (`P`) stops it.
 - Four themes (sepia / light / dark / high-contrast). The theme styles the app and
