@@ -11,7 +11,13 @@
   let speaking = false;
 
   const cfg = () => FR.settings.speech;
-  const MAX_RATE = 4;
+  // Ceiling for the speed slider. The Web Speech spec allows 0.1–10, but most
+  // engines quietly stop getting faster well before that — Windows SAPI voices
+  // map onto a coarse scale that tops out around 3x, and Chrome's network-backed
+  // "Google ..." voices are synthesised at a fixed rate and ignore the setting
+  // outright. Slider travel that changes nothing reads as a broken control, so
+  // this stays at a value voices actually honour.
+  const MAX_RATE = 2;
   const fmtRate = (r) => (Math.round(+r * 100) / 100).toString().replace(/\.0+$/, "") + "×";
 
   function chunk(text, max = 220) {
@@ -90,8 +96,6 @@
         }
         const u = new SpeechSynthesisUtterance(parts[i++]);
         if (voice) { u.voice = voice; u.lang = voice.lang; }
-        // The Web Speech spec allows 0.1–10. Most engines stay intelligible to
-        // about 4× and garble above that, so that is where this is capped.
         u.rate = Math.min(MAX_RATE, Math.max(0.5, +cfg().rate || 1));
         u.onend = sayNext;
         u.onerror = (e) => {
@@ -154,8 +158,9 @@
       });
       const rate = FR.$("#speech-rate");
       rate.max = MAX_RATE;
-      rate.value = cfg().rate;
-      this.showRate();
+      // via setRate so a rate saved under an older, higher cap is pulled back
+      // into range instead of leaving the slider and the label disagreeing
+      this.setRate(cfg().rate, false);
       // While dragging, only the label moves. Restarting the utterance on every
       // "input" tick would cancel-and-respeak dozens of times a second and the
       // voice would just stall. "change" fires once, on release (and once per
