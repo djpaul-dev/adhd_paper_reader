@@ -49,7 +49,8 @@ Open `sample-paper.pdf` (included) to try it immediately.
   (**R**), in either mode.
 - **Read aloud** (**S**) — the browser's own speech synthesis reads the spotlighted
   sentence. Pick a voice and speed; 🔊 in the bottom bar replays the current one.
-- **Auto-pace** — advances on its own. With **Read aloud** on, the *voice* sets the
+- **Auto-pace** (**P**) — one control: the chip is lit while it is running, and
+  the speed slider appears with it. It advances on its own. With **Read aloud** on, the *voice* sets the
   pace: one sentence per utterance, and the spotlight moves when that sentence
   finishes — so the highlight and the audio are never out of step. With it off,
   pacing falls back to a words-per-minute estimate. Skipping ahead or back while

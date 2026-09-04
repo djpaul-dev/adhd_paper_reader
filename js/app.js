@@ -21,8 +21,17 @@
     start() {
       if (!FR.pdf.blocks.length) return FR.toast("Open a paper first.");
       this.running = true;
-      FR.$("#autoscroll-toggle").textContent = "Pause";
+      this.paint();
       this.step();
+    },
+
+    // one control, so its lit state IS whether pacing is running
+    paint() {
+      FR.$("#tb-autoscroll").classList.toggle("is-active", this.running);
+      FR.$("#tb-autoscroll").title = this.running
+        ? "Stop advancing on its own (P)"
+        : "Advance through the paper on its own (P)";
+      FR.$("#autoscroll-controls").hidden = !this.running;
     },
 
     step() {
@@ -66,8 +75,7 @@
       clearTimeout(this._timer);
       this._timer = null;
       FR.speech.cancel();
-      const btn = FR.$("#autoscroll-toggle");
-      if (btn) btn.textContent = "Play";
+      this.paint();
     },
   };
 
@@ -308,13 +316,7 @@
       FR.$("#tb-sentence").addEventListener("click", () =>
         flip("sentenceMode", "#tb-sentence", () => this.rebuildUnits()));
 
-      FR.$("#tb-autoscroll").addEventListener("click", () => {
-        const box = FR.$("#autoscroll-controls");
-        box.hidden = !box.hidden;
-        FR.$("#tb-autoscroll").classList.toggle("is-active", !box.hidden);
-        if (box.hidden) FR.pace.stop();
-      });
-      FR.$("#autoscroll-toggle").addEventListener("click", () => FR.pace.toggle());
+      FR.$("#tb-autoscroll").addEventListener("click", () => FR.pace.toggle());
       FR.$("#wpm").addEventListener("input", (e) => {
         S.wpm = +e.target.value;
         FR.$("#wpm-val").textContent = S.wpm + " wpm";
@@ -397,7 +399,7 @@
           case "s": FR.$("#tb-speak").click(); break;
           case "h": FR.$("#spot-hl").click(); break;
           case "n": FR.$("#spot-note").click(); break;
-          case "p": FR.$("#autoscroll-toggle").click(); break;
+          case "p": FR.pace.toggle(); break;
           case "d": e.preventDefault(); FR.$("#park-input").focus(); break;
           case "1": this.setView("page"); break;
           case "2": this.setView("text"); break;
@@ -426,6 +428,7 @@
       /* ---- boot ---- */
       this.applySettings();
       this.applyModeChips();
+      FR.pace.paint();
       FR.text.ruler.bind();
       FR.timer.init();
       FR.session.init();

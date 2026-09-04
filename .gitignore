@@ -13,3 +13,6 @@ _*.png
 !sample-paper.pdf
 !hard-paper.pdf
 !page3-paper.pdf
+
+# headless-browser profile used when testing locally
+.crtest/
