@@ -29,8 +29,8 @@
     paint() {
       FR.$("#tb-autoscroll").classList.toggle("is-active", this.running);
       FR.$("#tb-autoscroll").title = this.running
-        ? "Stop advancing on its own (P)"
-        : "Advance through the paper on its own (P)";
+        ? "Stop advancing on its own (Space)"
+        : "Advance through the paper on its own (Space)";
       FR.$("#autoscroll-controls").hidden = !this.running;
     },
 
@@ -385,7 +385,11 @@
         }
         if (typing) return;
         switch (e.key) {
+          /* Arrows pace by hand, space starts and stops the pacer. The two do
+             not fight: a manual move while pacing skips ahead and keeps going,
+             so space is the only thing that stops it. */
           case " ":
+            e.preventDefault(); FR.pace.toggle(); break;
           case "ArrowRight":
             e.preventDefault(); this.nav(1, e.shiftKey); break;
           case "ArrowLeft":

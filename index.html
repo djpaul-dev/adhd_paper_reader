@@ -19,7 +19,7 @@
         <li><b>Open a PDF.</b> Nothing is uploaded anywhere; it stays in your browser.</li>
         <li><b>Set one goal.</b> "What do I actually need from this paper?" Keeps you anchored.</li>
         <li><b>Start a focus block.</b> 25 minutes, then a real break. Repeat.</li>
-        <li><b>Read one paragraph at a time.</b> The paper keeps its original layout; a spotlight lights just the current paragraph and dims the rest. <kbd>Space</kbd> moves you forward.</li>
+        <li><b>Read one sentence at a time.</b> The paper keeps its original layout; a spotlight frames just the current sentence and dims the rest. <kbd>→</kbd> and <kbd>←</kbd> move you; <kbd>Space</kbd> lets it advance on its own.</li>
         <li><b>Switch to Clean text</b> for a reflowed single column with bionic reading, if the layout gets in the way.</li>
         <li><b>Park distractions.</b> Thought pops up? Dump it in the parking lot and keep reading.</li>
       </ol>
@@ -137,7 +137,7 @@
           <button id="tb-spotlight" class="chip is-active" title="Dim everything except what you're reading (F)">Spotlight</button>
           <button id="tb-sentence" class="chip is-active" title="Move one sentence at a time instead of a whole paragraph — keeps the spotlight in step with the narration">Sentence</button>
           <button id="tb-ruler" class="chip" title="Reading ruler that follows your cursor (R)">Ruler</button>
-          <button id="tb-autoscroll" class="chip" title="Advance through the paper on its own (P)">Auto-pace</button>
+          <button id="tb-autoscroll" class="chip" title="Advance through the paper on its own (Space)">Auto-pace</button>
           <button id="tb-speak" class="chip" title="Read the spotlighted paragraph aloud (S)">Read aloud</button>
         </div>
         <div class="tool-group">
@@ -187,9 +187,9 @@
       </div>
 
       <div id="text-nav" class="text-nav" hidden>
-        <button id="para-prev" class="nav-btn" title="Previous paragraph (←)">←</button>
+        <button id="para-prev" class="nav-btn" title="Previous sentence (←)">←</button>
         <span id="para-pos" class="para-pos">—</span>
-        <button id="para-next" class="nav-btn" title="Next paragraph (Space / →)">→</button>
+        <button id="para-next" class="nav-btn" title="Next sentence (→)">→</button>
         <span class="nav-sep"></span>
         <button id="spot-hl" class="nav-btn nav-btn-sm" title="Highlight this paragraph (H)">★</button>
         <button id="spot-note" class="nav-btn nav-btn-sm" title="Add a note (N)">✎</button>

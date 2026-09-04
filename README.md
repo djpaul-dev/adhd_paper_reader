@@ -32,8 +32,7 @@ Open `sample-paper.pdf` (included) to try it immediately.
 ### Reading
 - **Original layout mode (default)** — the paper is rendered exactly as it was laid
   out: columns, figures, equations, fonts, everything. A **spotlight** frames the
-  current sentence and dims the rest of the page. Advance with **Space / →**, back
-  with **←**; **↓ / ↑** (or **Shift**+arrow) skip a whole paragraph; click anywhere
+  current sentence and dims the rest of the page. Move with **→** and **←**; **↓ / ↑** (or **Shift**+arrow) skip a whole paragraph; click anywhere
   to jump to the sentence you clicked. An invisible text layer keeps the real text
   selectable for quotes, notes, and "explain this".
 - **One sentence at a time.** The reading unit is a sentence, not a paragraph, so the
@@ -49,7 +48,7 @@ Open `sample-paper.pdf` (included) to try it immediately.
   (**R**), in either mode.
 - **Read aloud** (**S**) — the browser's own speech synthesis reads the spotlighted
   sentence. Pick a voice and speed; 🔊 in the bottom bar replays the current one.
-- **Auto-pace** (**P**) — one control: the chip is lit while it is running, and
+- **Auto-pace** (**Space**) — one control: the chip is lit while it is running, and
   the speed slider appears with it. It advances on its own. With **Read aloud** on, the *voice* sets the
   pace: one sentence per utterance, and the spotlight moves when that sentence
   finishes — so the highlight and the audio are never out of step. With it off,
@@ -87,14 +86,14 @@ modes — switch freely.
 
 | Key | Action |
 | --- | --- |
-| `Space` / `→` | Next sentence |
-| `←` | Previous sentence |
+| `→` / `←` | Next / previous sentence |
 | `↓` / `↑` | Next / previous paragraph |
+| `Space` | Start / stop auto-pace |
 | `B` | Bionic reading |
 | `F` | Spotlight (dim other paragraphs) |
 | `R` | Reading ruler |
 | `S` | Read aloud on / off |
-| `P` | Play / pause auto-pace |
+| `P` | Same as `Space` |
 | `H` / `N` | Highlight / note the current paragraph |
 | `T` | Start / pause focus timer |
 | `D` | Jump to the distraction parking lot |
