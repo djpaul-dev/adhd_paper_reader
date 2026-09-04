@@ -1,0 +1,15 @@
+sidecar/.venv/
+__pycache__/
+*.pyc
+_*.png
+
+# Papers are ignored by default: they are other people's copyrighted work, they
+# are large, and git keeps every version forever. Drop any PDF in here to read
+# it without thinking about the repo.
+*.pdf
+
+# ...except the synthetic test fixtures, which are generated for this project
+# and are what the regression tests run against (~130 KB in total).
+!sample-paper.pdf
+!hard-paper.pdf
+!page3-paper.pdf

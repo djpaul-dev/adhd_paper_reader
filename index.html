@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="sepia">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Focus Reader — research papers for ADHD brains</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Lora:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <!-- ============ ONBOARDING ============ -->
+  <div id="onboarding" class="overlay" hidden>
+    <div class="overlay-card">
+      <h1>Focus Reader</h1>
+      <p class="lede">A calmer way to get through a research paper — one chunk at a time.</p>
+      <ol class="how">
+        <li><b>Open a PDF.</b> Nothing is uploaded anywhere; it stays in your browser.</li>
+        <li><b>Set one goal.</b> "What do I actually need from this paper?" Keeps you anchored.</li>
+        <li><b>Start a focus block.</b> 25 minutes, then a real break. Repeat.</li>
+        <li><b>Read one paragraph at a time.</b> The paper keeps its original layout; a spotlight lights just the current paragraph and dims the rest. <kbd>Space</kbd> moves you forward.</li>
+        <li><b>Switch to Clean text</b> for a reflowed single column with bionic reading, if the layout gets in the way.</li>
+        <li><b>Park distractions.</b> Thought pops up? Dump it in the parking lot and keep reading.</li>
+      </ol>
+      <button id="onboarding-start" class="btn btn-primary btn-lg">Let's go</button>
+      <label class="checkline"><input type="checkbox" id="onboarding-hide" /> Don't show this again</label>
+    </div>
+  </div>
+
+  <!-- ============ BREAK OVERLAY ============ -->
+  <div id="break-overlay" class="overlay" hidden>
+    <div class="overlay-card center">
+      <div class="break-emoji">🌿</div>
+      <h2 id="break-title">Break time</h2>
+      <p id="break-copy" class="lede">Stand up. Look at something 20 feet away for 20 seconds. Drink water.</p>
+      <div class="break-count" id="break-count">5:00</div>
+      <div class="row">
+        <button id="break-skip" class="btn">Skip break</button>
+        <button id="break-extend" class="btn">+5 min</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ APP SHELL ============ -->
+  <header class="topbar">
+    <div class="topbar-group">
+      <button id="toggle-left" class="icon-btn" title="Toggle focus panel (F2)" aria-label="Toggle focus panel">☰</button>
+      <strong class="wordmark">Focus&nbsp;Reader</strong>
+    </div>
+
+    <div class="topbar-group">
+      <input type="file" id="file-input" accept="application/pdf" hidden />
+      <button id="open-pdf" class="btn btn-primary">Open PDF</button>
+      <span id="doc-title" class="doc-title" title="">No paper open</span>
+      <button id="parser-pill" class="pill pill-muted parser-pill" hidden></button>
+    </div>
+
+    <div class="topbar-group">
+      <div class="segmented" role="tablist" aria-label="View mode">
+        <button id="view-page" class="seg-btn is-active" role="tab" title="The paper exactly as laid out, with focus aids on top (1)">Original layout</button>
+        <button id="view-text" class="seg-btn" role="tab" title="Reflowed single column — adds bionic text &amp; typography controls (2)">Clean text</button>
+      </div>
+      <button id="toggle-right" class="icon-btn" title="Toggle notes panel (F4)" aria-label="Toggle notes panel">✎</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- ---------- LEFT: FOCUS PANEL ---------- -->
+    <aside id="left-panel" class="panel panel-left">
+      <section class="card">
+        <div class="card-head"><h2>My goal for this paper</h2></div>
+        <textarea id="goal-input" class="goal-input" rows="2"
+          placeholder="e.g. Do their results actually support using this method on small datasets?"></textarea>
+        <p class="hint">One sentence. Re-read it whenever you drift.</p>
+      </section>
+
+      <section class="card focus-timer">
+        <div class="card-head">
+          <h2>Focus block</h2>
+          <span id="timer-phase" class="pill">Focus</span>
+        </div>
+        <div id="timer-display" class="timer-display">25:00</div>
+        <div class="row">
+          <button id="timer-toggle" class="btn btn-primary">Start</button>
+          <button id="timer-reset" class="btn">Reset</button>
+        </div>
+        <div class="timer-dots" id="timer-dots" aria-label="Pomodoros this cycle"></div>
+        <details class="mini-settings">
+          <summary>Timing</summary>
+          <label>Focus <input type="number" id="set-focus" min="5" max="90" value="25" /> min</label>
+          <label>Short break <input type="number" id="set-short" min="1" max="30" value="5" /> min</label>
+          <label>Long break <input type="number" id="set-long" min="5" max="45" value="20" /> min</label>
+          <label class="checkline"><input type="checkbox" id="set-chime" checked /> Chime on switch</label>
+        </details>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Sections</h2>
+          <span id="progress-label" class="pill">0 / 0</span>
+        </div>
+        <div class="progress"><div id="progress-bar" class="progress-bar"></div></div>
+        <ul id="section-list" class="section-list">
+          <li class="section-empty">Open a paper to see its sections.</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Distraction parking lot</h2>
+          <button id="park-clear" class="link-btn">clear</button>
+        </div>
+        <form id="park-form" class="park-form">
+          <input type="text" id="park-input" placeholder="Thought that just barged in… (D)" autocomplete="off" />
+          <button class="btn" type="submit">Park it</button>
+        </form>
+        <ul id="park-list" class="park-list"></ul>
+        <p class="hint">Get it out of your head so your head can get back to the paper.</p>
+      </section>
+
+      <section class="card stats">
+        <div class="card-head"><h2>Today</h2></div>
+        <div class="stat-row">
+          <div class="stat"><span id="stat-minutes" class="stat-num">0</span><span class="stat-cap">focus min</span></div>
+          <div class="stat"><span id="stat-sessions" class="stat-num">0</span><span class="stat-cap">blocks done</span></div>
+          <div class="stat"><span id="stat-streak" class="stat-num">0</span><span class="stat-cap">day streak</span></div>
+        </div>
+      </section>
+    </aside>
+
+    <!-- ---------- CENTER: READER ---------- -->
+    <main class="reader" id="reader">
+      <div id="reader-toolbar" class="reader-toolbar">
+        <div class="tool-group">
+          <button id="tb-bionic" class="chip" title="Bold the start of each word (B)">Bionic</button>
+          <button id="tb-spotlight" class="chip is-active" title="Dim everything except what you're reading (F)">Spotlight</button>
+          <button id="tb-sentence" class="chip is-active" title="Move one sentence at a time instead of a whole paragraph — keeps the spotlight in step with the narration">Sentence</button>
+          <button id="tb-ruler" class="chip" title="Reading ruler that follows your cursor (R)">Ruler</button>
+          <button id="tb-autoscroll" class="chip" title="Auto-advance through the paragraphs">Auto-pace</button>
+          <button id="tb-speak" class="chip" title="Read the spotlighted paragraph aloud (S)">Read aloud</button>
+        </div>
+        <div class="tool-group">
+          <label class="tool-label">Text
+            <button id="font-dec" class="step-btn">A−</button>
+            <button id="font-inc" class="step-btn">A+</button>
+          </label>
+          <select id="font-family" class="tool-select" title="Typeface">
+            <option value="hyper">Atkinson Hyperlegible</option>
+            <option value="serif">Lora (serif)</option>
+            <option value="system">System sans</option>
+          </select>
+          <select id="theme-select" class="tool-select" title="Colour theme">
+            <option value="sepia">Sepia</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+            <option value="contrast">High contrast</option>
+          </select>
+        </div>
+        <div class="tool-group" id="autoscroll-controls" hidden>
+          <label class="tool-label" id="wpm-label">Pace
+            <input type="range" id="wpm" min="100" max="500" step="10" value="220" />
+            <span id="wpm-val">220 wpm</span>
+          </label>
+          <button id="autoscroll-toggle" class="chip">Play</button>
+        </div>
+        <div class="tool-group" id="speech-controls" hidden>
+          <select id="voice-select" class="tool-select" title="Voice"></select>
+          <label class="tool-label">Speed
+            <input type="range" id="speech-rate" min="0.6" max="2" step="0.05" value="1" />
+            <span id="speech-rate-val">1×</span>
+          </label>
+        </div>
+      </div>
+
+      <div id="reader-scroll" class="reader-scroll">
+        <div id="drop-hint" class="drop-hint">
+          <div class="drop-hint-inner">
+            <div class="drop-emoji">📄</div>
+            <p><b>Drop a PDF here</b> or use “Open PDF”.</p>
+            <p class="hint" id="resume-hint" hidden></p>
+          </div>
+        </div>
+        <div id="paper-view" class="paper-view" hidden></div>
+        <div id="paper-spotlight" class="paper-spotlight" hidden></div>
+        <article id="text-view" class="text-view" hidden></article>
+        <div id="reading-ruler" class="reading-ruler" hidden></div>
+      </div>
+
+      <div id="text-nav" class="text-nav" hidden>
+        <button id="para-prev" class="nav-btn" title="Previous paragraph (←)">←</button>
+        <span id="para-pos" class="para-pos">—</span>
+        <button id="para-next" class="nav-btn" title="Next paragraph (Space / →)">→</button>
+        <span class="nav-sep"></span>
+        <button id="spot-hl" class="nav-btn nav-btn-sm" title="Highlight this paragraph (H)">★</button>
+        <button id="spot-note" class="nav-btn nav-btn-sm" title="Add a note (N)">✎</button>
+        <button id="spot-speak" class="nav-btn nav-btn-sm" title="Read this paragraph aloud (S)">🔊</button>
+      </div>
+    </main>
+
+    <!-- ---------- RIGHT: NOTES + AI ---------- -->
+    <aside id="right-panel" class="panel panel-right" hidden>
+      <section class="card">
+        <div class="card-head"><h2>Highlights &amp; notes</h2></div>
+        <div id="notes-list" class="notes-list">
+          <p class="hint">Click the lit paragraph's ★ to highlight it, or ✎ to attach a note — works in both views. Select any text on the page to save a quote.</p>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>Parser</h2>
+          <span class="pill pill-muted">optional</span>
+        </div>
+        <div class="parser-choice" role="radiogroup" aria-label="Where papers get parsed">
+          <label>
+            <input type="radio" name="parser-mode" value="off" />
+            <span><b>Built-in</b><em>instant · no setup · guesses the layout</em></span>
+          </label>
+          <label>
+            <input type="radio" name="parser-mode" value="local" />
+            <span><b>This machine</b><em>~2 min a paper · nothing is uploaded</em></span>
+          </label>
+          <label>
+            <input type="radio" name="parser-mode" value="cloud" />
+            <span><b>GPU</b><em>~10 s a paper · uploads the paper</em></span>
+          </label>
+        </div>
+        <p id="sidecar-status" class="hint sidecar-status is-off">off — using the built-in parser</p>
+        <p id="sidecar-remote" class="remote-warn" hidden></p>
+        <div id="sidecar-bar" class="progress" hidden><div id="sidecar-bar-fill" class="progress-bar"></div></div>
+        <div class="row">
+          <button id="sidecar-reparse" class="btn btn-sm">Re-read this paper</button>
+          <button id="sidecar-recheck" class="btn btn-sm">Check connection</button>
+        </div>
+        <details class="mini-settings" id="sidecar-where">
+          <summary>Where it runs</summary>
+          <p class="hint"><b>This machine</b> — start it with
+             <code>cd sidecar &amp;&amp; .venv/bin/python server.py</code></p>
+          <input type="text" id="sidecar-local-url" spellcheck="false"
+                 placeholder="http://127.0.0.1:8077" />
+          <p class="hint"><b>GPU</b> — deploy with
+             <code>modal deploy sidecar/modal_app.py</code>, then paste the
+             <code>.modal.run</code> URL it prints</p>
+          <input type="text" id="sidecar-cloud-url" spellcheck="false"
+                 placeholder="https://….modal.run" />
+          <p class="hint">Setup notes: <code>sidecar/README.md</code></p>
+        </details>
+      </section>
+
+      <section class="card">
+        <div class="card-head">
+          <h2>AI helper</h2>
+          <span class="pill pill-muted">optional</span>
+        </div>
+        <div id="ai-locked">
+          <p class="hint">Add an Anthropic API key to generate a plain-language TL;DR and section summaries. The paper's text is sent to Anthropic to do this. The key is stored only in this browser.</p>
+          <input type="password" id="ai-key" placeholder="sk-ant-…" autocomplete="off" />
+          <select id="ai-model" class="tool-select">
+            <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5 — fast</option>
+            <option value="claude-sonnet-5">Claude Sonnet 5 — deeper</option>
+          </select>
+          <button id="ai-save-key" class="btn">Save key</button>
+        </div>
+        <div id="ai-tools" hidden>
+          <div class="row wrap">
+            <button id="ai-tldr" class="btn">TL;DR the paper</button>
+            <button id="ai-section" class="btn">Summarise this section</button>
+            <button id="ai-explain" class="btn">Explain my selection</button>
+          </div>
+          <div id="ai-output" class="ai-output"></div>
+          <button id="ai-forget" class="link-btn">remove key</button>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <!-- selection popup -->
+  <div id="sel-popup" class="sel-popup" hidden>
+    <button id="sel-quote" class="btn btn-sm">Save quote</button>
+    <button id="sel-explain" class="btn btn-sm">Explain</button>
+  </div>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <!-- PDF.js ships ESM only from v4 on, and the version matters: 3.x cannot
+       decode the fonts in many current papers and then returns no text at all.
+       Bridge the module into the global the classic scripts below expect. -->
+  <script>
+    window.pdfjsReady = new Promise((resolve) => { window.__pdfjsResolve = resolve; });
+  </script>
+  <script type="module">
+    const BASE = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/5.4.149/";
+    try {
+      const pdfjsLib = await import(BASE + "pdf.min.mjs");
+      pdfjsLib.GlobalWorkerOptions.workerSrc = BASE + "pdf.worker.min.mjs";
+      window.pdfjsLib = pdfjsLib;
+      window.__pdfjsResolve(pdfjsLib);
+    } catch (e) {
+      console.error("PDF.js failed to load", e);
+      window.__pdfjsResolve(null);
+    }
+  </script>
+  <script src="js/state.js"></script>
+  <script src="js/pdfview.js"></script>
+  <script src="js/textview.js"></script>
+  <script src="js/paperview.js"></script>
+  <script src="js/speech.js"></script>
+  <script src="js/sidecar.js"></script>
+  <script src="js/timer.js"></script>
+  <script src="js/session.js"></script>
+  <script src="js/ai.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
