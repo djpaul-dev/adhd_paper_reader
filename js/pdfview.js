@@ -596,6 +596,75 @@
       emit(bs, "prose");
     })(boxes, 0);
 
+    /* A diagram is a cluster of small labels, and the recursion above will
+       happily carve one into a region per panel — after which the reader walks
+       the panels column by column and the spotlight bounces across the page
+       instead of reading the figure once and moving on.
+
+       The caption is the reliable anchor: a figure's caption sits directly
+       under its artwork. So a run of regions packed tightly above a caption,
+       none of which carries a line of running text, is one figure that got
+       over-segmented. Three is the threshold because a figure the recursion
+       understood comes out as a *single* region — fragmenting that badly is
+       itself the evidence that none of it was prose. */
+    const boxOf = (r) => ({
+      x0: Math.min(...r.lines.map((l) => l.x)),
+      x1: Math.max(...r.lines.map((l) => l.right)),
+      y0: Math.min(...r.lines.map((l) => -l.y - l.h)),
+      y1: Math.max(...r.lines.map((l) => -l.y + l.h * 0.3)),
+      longest: Math.max(...r.lines.map((l) => l.str.length)),
+    });
+    // Measured across the sample papers: the pieces of a shattered figure sit
+    // 1-2 pitches apart, while the nearest thing above an *intact* figure (an
+    // author block, a column of body text) is 27 pitches away or more.
+    const ART_GAP = pitch * 4;
+    const ART_PROSE_LEN = 50;
+    for (let k = regions.length - 1; k > 0; k--) {
+      if (!CAPTION_RE.test(regions[k].lines[0].str)) continue;
+      const cap = boxOf(regions[k]);
+      const above = [];
+      for (let j = 0; j < k; j++) {
+        const b = boxOf(regions[j]);
+        if (b.y1 <= cap.y0 + 1) above.push({ j, b });
+      }
+
+      /* Grow a slab upward from the caption. A diagram is laid out as a grid,
+         so its pieces sit beside each other as often as above — walking
+         straight up would stop at the first neighbour and take one column of
+         panels. Absorb anything the slab reaches, then re-measure and reach
+         again, until nothing new comes in or a line of running text blocks it. */
+      const taken = new Set();
+      let slabTop = cap.y0;
+      for (let grew = true; grew; ) {
+        grew = false;
+        for (const { j, b } of above) {
+          if (taken.has(j) || b.y1 < slabTop - ART_GAP) continue;
+          // running text, or something reaching outside the figure's width,
+          // is the edge of the artwork rather than part of it
+          const ov = Math.min(b.x1, cap.x1) - Math.max(b.x0, cap.x0);
+          if (b.longest >= ART_PROSE_LEN || ov < (b.x1 - b.x0) * 0.6) {
+            grew = false;
+            break;
+          }
+          taken.add(j);
+          slabTop = Math.min(slabTop, b.y0);
+          grew = true;
+        }
+      }
+
+      // only rewrite a run the recursion emitted together, so nothing is
+      // reordered across the rest of the page
+      const idx = [...taken].sort((a, b) => a - b);
+      const contiguous = idx.length && idx[idx.length - 1] - idx[0] === idx.length - 1;
+      if (idx.length >= 3 && contiguous) {
+        const lines = idx
+          .flatMap((j) => regions[j].lines)
+          .sort((a, b) => b.y - a.y || a.x - b.x); // row-major, as drawn
+        regions.splice(idx[0], idx.length, { kind: "figure", lines });
+        k = idx[0];
+      }
+    }
+
     return regions;
   }
 
