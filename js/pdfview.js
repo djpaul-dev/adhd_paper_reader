@@ -858,13 +858,50 @@
        coverage check does not catch it: that page was still 86% claimed.
        So the leftovers go through the built-in segmenter instead, and the
        reader ends up with the model's structure AND all of the words. */
+    /* Leftovers have to be segmented inside the column grid the model already
+       found, not on their own. Segmenting them in isolation sees only a handful
+       of stray lines, and the column test needs several boxes on each side of a
+       gutter before it will cut there — so a column that lost one line and a
+       column that lost three get welded into a single full-width block. That
+       block then straddles the gutter, and because a box crossing the gutter
+       blocks every vertical cut, the whole page falls back to a plain
+       top-to-bottom sort and the two columns interleave.
+
+       A block wider than most of the page spans the grid rather than sitting in
+       it (a figure, a caption, a title), so it says nothing about where the
+       gutter runs and is left out of the estimate. */
+    const columnCuts = (pageNo) => {
+      const cols = out
+        .filter((b) => b.page === pageNo && b.box.w < 0.6)
+        .map((b) => [b.box.x, b.box.x + b.box.w])
+        .sort((a, b) => a[0] - b[0]);
+      const cuts = [];
+      let reach = cols.length ? cols[0][1] : 0;
+      for (let k = 1; k < cols.length; k++) {
+        if (cols[k][0] - reach >= 0.015) cuts.push((reach + cols[k][0]) / 2);
+        reach = Math.max(reach, cols[k][1]);
+      }
+      return cuts;
+    };
+
     let recovered = 0;
     pages.forEach((pg, i) => {
       const leftover = pg.frags.filter((_, k) => !claimed[i].has(k));
       if (!leftover.length) return;
+      // With no usable grid this is one bucket, i.e. exactly what it used to do
+      const cuts = columnCuts(i);
+      const groups = new Map();
+      for (const f of leftover) {
+        const cx = (f.x + f.right) / 2 / pg.W;
+        const col = cuts.reduce((n, c) => n + (cx > c ? 1 : 0), 0);
+        if (!groups.has(col)) groups.set(col, []);
+        groups.get(col).push(f);
+      }
       const found = [];
-      for (const region of segmentRegions(leftover, pg.W)) {
-        linesToBlocks(region.lines, i, pg.W, pg.H, found, { kind: region.kind });
+      for (const col of [...groups.keys()].sort((a, b) => a - b)) {
+        for (const region of segmentRegions(groups.get(col), pg.W)) {
+          linesToBlocks(region.lines, i, pg.W, pg.H, found, { kind: region.kind });
+        }
       }
       recovered += found.length;
       out.push(...found);
