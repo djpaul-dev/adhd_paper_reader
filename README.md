@@ -23,6 +23,11 @@ python3 -m http.server 8000
 # then open http://localhost:8000
 ```
 
+Or `./start.sh`, which brings up that server *and* the optional
+[parsing sidecar](sidecar/README.md) on `127.0.0.1:8077`, prefixes both logs, and
+stops both on Ctrl-C. `./start.sh --no-sidecar` for the page alone; `PORT` and
+`SIDECAR_PORT` override the ports.
+
 Open `sample-paper.pdf` (included) to try it immediately.
 
 ---
