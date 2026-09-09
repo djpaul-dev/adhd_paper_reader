@@ -363,15 +363,43 @@
             else runs.push([s]);
           }
           const mid = (b) => (b.y0 + b.y1) / 2;
-          const band = (lo, hi) => {
+
+          /* Text wrapping an inset arrives in two pieces: the narrow part
+             beside it and the full-width remainder below. They are one
+             paragraph, so nothing may be read between them — otherwise the
+             reader gets half a sentence ("...offer the exciting"), then the
+             whole figure, then the rest of it. */
+          // Both halves must be running prose. A page of display maths has the
+          // model emitting a box per symbol, and "<=t" ends in a letter and
+          // "cache" starts in lower case without either being a sentence.
+          const PARA = 40;
+          const body = (b) => (b.ref.text || "").trim();
+          const openEnd = (b) => body(b).length >= PARA && /[A-Za-z0-9,\-\u2013\u2014]$/.test(body(b));
+          const lowerStart = (b) => body(b).length >= PARA && /^[a-z]/.test(body(b));
+          const flowsInto = (left, first) =>
+            left.length &&
+            openEnd(left.slice().sort((a, b) => a.y0 - b.y0).pop()) &&
+            lowerStart(first);
+
+          const band = (lo, hi, run) => {
             const inBand = rest.filter((b) => mid(b) >= lo && mid(b) < hi);
-            if (inBand.length) cut(inBand, depth + 1);
+            if (!inBand.length) return run && flushSorted(run);
+            const left = inBand.filter((b) => b.x1 <= gx);
+            const right = inBand.filter((b) => b.x0 >= gx);
+            if (run && left.length && right.length && flowsInto(left, run[0])) {
+              cut(left, depth + 1);
+              flushSorted(run);
+              cut(right, depth + 1);
+              return;
+            }
+            cut(inBand, depth + 1);
+            if (run) flushSorted(run);
           };
+
           let prev = -Infinity;
           for (const run of runs) {
             const edge = (run[0].y0 + run[run.length - 1].y1) / 2;
-            band(prev, edge);
-            flushSorted(run);
+            band(prev, edge, run);
             prev = edge;
           }
           band(prev, Infinity);
