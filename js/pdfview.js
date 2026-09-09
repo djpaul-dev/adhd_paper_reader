@@ -308,9 +308,14 @@
       const x0 = Math.min(...bs.map((b) => b.x0));
       const width = Math.max(...bs.map((b) => b.x1)) - x0;
       if (width <= 0) return null;
+      /* Sample the middle half of the region finely. A gutter can be narrower
+         than a coarse step and fall straight through it: here the columns end
+         at 0.487 and the caption starts at 0.500, a window of 0.013, while a
+         fortieth of the width is 0.016 — so every sampled x landed inside one
+         block or the other and the gutter was never seen. */
       let best = null;
-      for (let i = 10; i <= 30; i++) {
-        const x = x0 + (width * i) / 40;
+      for (let i = 20; i <= 60; i++) {
+        const x = x0 + (width * i) / 80;
         const left = [], right = [];
         let cross = 0;
         for (const b of bs) {
