@@ -204,7 +204,21 @@
       // text must also run left-to-right: sorting by y interleaves the columns
       // of a two-column page, and without this a left-column line gets swallowed
       // by the right-column fragment that happens to share its baseline.
-      const continues = dx > -Math.min(cur ? cur.h : 0, t.h) && dx <= GUTTER_GAP;
+      let continues = dx > -Math.min(cur ? cur.h : 0, t.h) && dx <= GUTTER_GAP;
+      /* A known column boundary beats the gap measurement. On this paper the
+         space between a left-column line and the "Figure 8:" caption beside it
+         is 7.7pt, while the gap inside that caption is 19.7pt — no threshold
+         can separate those, so when the layout tells us where the gutter runs,
+         nothing may be joined across it. */
+      if (continues && cur && hintSplitX && hintSplitX.length) {
+        // compare midpoints, not edges: the estimated gutter can sit a point or
+        // two inside either column, and an edge test then misses the split
+        const midCur = (cur.x + cur.right) / 2;
+        const midTok = t.x + t.w / 2;
+        for (const sx of hintSplitX) {
+          if (midCur < sx && midTok >= sx) { continues = false; break; }
+        }
+      }
       if (sameBand && continues) {
         if (dx > t.h * 0.25 && !/\s$/.test(cur.str)) cur.str += " ";
         cur.str += t.str;
@@ -286,6 +300,31 @@
     // boxes are normalised (0..1 of the page) on both axes
     const MIN_X = 0.012;
     const MIN_Y = 0.004;
+
+    // The x where the fewest boxes cross: the gutter the columns would have if
+    // nothing were lying across it. Null unless both sides hold real columns
+    // and only a minority of boxes cross.
+    const nearGutter = (bs) => {
+      const x0 = Math.min(...bs.map((b) => b.x0));
+      const width = Math.max(...bs.map((b) => b.x1)) - x0;
+      if (width <= 0) return null;
+      let best = null;
+      for (let i = 10; i <= 30; i++) {
+        const x = x0 + (width * i) / 40;
+        const left = [], right = [];
+        let cross = 0;
+        for (const b of bs) {
+          if (b.x0 < x && b.x1 > x) cross++;
+          else if (b.x1 <= x) left.push(b);
+          else right.push(b);
+        }
+        if (left.length < 2 || right.length < 2) continue;
+        const span = (g) => Math.max(...g.map((b) => b.x1)) - Math.min(...g.map((b) => b.x0));
+        if (span(left) < width * 0.15 || span(right) < width * 0.15) continue;
+        if (!best || cross < best.cross) best = { x, cross };
+      }
+      return best && best.cross <= bs.length * 0.35 ? best.x : null;
+    };
     const flushSorted = (bs) =>
       bs.slice().sort((a, b) => a.y0 - b.y0 || a.x0 - b.x0).forEach((b) => out.push(b.ref));
 
@@ -302,6 +341,44 @@
           return;
         }
       }
+      /* No gutter runs the whole way down, which on a page with columns means
+         something lies across it — a full-width paragraph, a spanning table.
+         Cutting horizontally instead is only safe if the gap is a real break:
+         two paragraphs of the left column happen to leave a gap that lines up
+         with one in the right column, and slicing there reads half of each
+         column before coming back for the rest. Find the gutter the columns
+         nearly have, lift out the few boxes that cross it, and order the bands
+         between them. On a genuinely single-column page every box crosses every
+         candidate, so this cannot fire. */
+      const gx = nearGutter(bs);
+      if (gx != null) {
+        const straddles = (b) => b.x0 < gx && b.x1 > gx;
+        const crossing = bs.filter(straddles).sort((a, b) => a.y0 - b.y0);
+        const rest = bs.filter((b) => !straddles(b));
+        if (crossing.length && rest.length) {
+          const runs = [];
+          for (const s of crossing) {
+            const last = runs[runs.length - 1];
+            if (last && s.y0 - last[last.length - 1].y1 <= MIN_Y) last.push(s);
+            else runs.push([s]);
+          }
+          const mid = (b) => (b.y0 + b.y1) / 2;
+          const band = (lo, hi) => {
+            const inBand = rest.filter((b) => mid(b) >= lo && mid(b) < hi);
+            if (inBand.length) cut(inBand, depth + 1);
+          };
+          let prev = -Infinity;
+          for (const run of runs) {
+            const edge = (run[0].y0 + run[run.length - 1].y1) / 2;
+            band(prev, edge);
+            flushSorted(run);
+            prev = edge;
+          }
+          band(prev, Infinity);
+          return;
+        }
+      }
+
       const h = widestGap(bs, (b) => b.y0, (b) => b.y1, MIN_Y);
       if (h) {
         const top = bs.filter((b) => b.y1 <= h.start);
@@ -849,9 +926,20 @@
         const cx = (f.x + f.right) / 2 / W;
         const cy = (H - f.y - f.h * 0.5) / H; // fragment centre, from the top
         if (
-          cx >= bx.x - PAD && cx <= bx.x + bx.w + PAD &&
-          cy >= bx.y - PAD && cy <= bx.y + bx.h + PAD
-        ) picked.push(i);
+          cx < bx.x - PAD || cx > bx.x + bx.w + PAD ||
+          cy < bx.y - PAD || cy > bx.y + bx.h + PAD
+        ) return;
+        /* The centre alone is not enough. A full-width line is centred on the
+           page, so a narrow column box swallows it and then reports a box
+           stretching right across the gutter — after which nothing can cut the
+           page into columns and the reading order collapses to a plain
+           top-to-bottom sort. Require the line to actually fit the box it is
+           joining; a line that does not belongs to the wider block below it. */
+        const fx0 = f.x / W, fx1 = f.right / W;
+        const overlap =
+          Math.min(fx1, bx.x + bx.w + PAD) - Math.max(fx0, bx.x - PAD);
+        if (overlap < (fx1 - fx0) * 0.6) return;
+        picked.push(i);
       });
       if (!picked.length) continue;
 
@@ -1024,6 +1112,7 @@
         pages.push({
           W: vp.width,
           H: vp.height,
+          items: tc.items,
           frags: itemsToLines(tc.items, vp.width, vp.height),
         });
       }
@@ -1042,6 +1131,53 @@
       } catch (e) {
         console.warn("sidecar parse failed", e);
         this.sourceReason = "the service returned an error";
+      }
+
+      /* Lines were built before the model answered, so they were split on gap
+         size alone. That is not always enough: on this paper the space between
+         a left-column line and the "Figure 8:" caption beside it is 7.7pt while
+         the gap *inside* that caption is 19.7pt, so no threshold separates
+         them. The caption then ends up inside the paragraph, and the block that
+         results straddles the gutter and collapses the page's reading order.
+
+         Rather than guess a gutter for the page — an appendix of centred
+         equations will happily supply a fake one — split only where a line can
+         be shown to bridge two regions the model itself reports as separate:
+         same rows, no horizontal overlap. Then re-line that page. */
+      if (structure && structure.blocks) {
+        pages.forEach((pg, i) => {
+          const boxes = structure.blocks.filter((b) => b.page === i && b.box);
+          if (boxes.length < 2) return;
+          const PAD = 0.006;
+          const cuts = new Set();
+          for (const f of pg.frags) {
+            const fx0 = f.x / pg.W, fx1 = f.right / pg.W;
+            const fy = (pg.H - f.y - f.h * 0.5) / pg.H;
+            const hits = boxes.filter(
+              (b) =>
+                fy >= b.box.y - PAD && fy <= b.box.y + b.box.h + PAD &&
+                Math.min(fx1, b.box.x + b.box.w) > Math.max(fx0, b.box.x)
+            );
+            for (let a = 0; a < hits.length; a++) {
+              for (let c = a + 1; c < hits.length; c++) {
+                const A = hits[a].box, B = hits[c].box;
+                // Only real columns, never two inline fragments: a page of
+                // display maths has the model emitting a box per symbol, and
+                // any two of those are "disjoint" as well.
+                if (A.w < 0.15 || B.w < 0.15) continue;
+                const lo = A.x + A.w <= B.x ? A : B.x + B.w <= A.x ? B : null;
+                if (!lo) continue; // they overlap: not a gutter
+                const hi = lo === A ? B : A;
+                // the line must genuinely reach into both, not just graze one
+                const into = (b) =>
+                  Math.min(fx1, b.x + b.w) - Math.max(fx0, b.x) >= (fx1 - fx0) * 0.1;
+                if (!into(lo) || !into(hi)) continue;
+                cuts.add(((lo.x + lo.w + hi.x) / 2) * pg.W);
+              }
+            }
+          }
+          if (cuts.size) pg.frags = itemsToLines(pg.items, pg.W, pg.H, [...cuts]);
+        });
       }
 
       if (structure) {
