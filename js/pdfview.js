@@ -542,7 +542,24 @@
           }
         }
         // otherwise the topmost band break — a page reads top to bottom
-        const h = allGaps(bs, Y0, Y1, MIN_GAP_Y)[0];
+        const gaps = allGaps(bs, Y0, Y1, MIN_GAP_Y);
+        let h = gaps[0];
+
+        /* Something lying across the columns is what stopped the column cut
+           above — usually a caption under a figure, or a spanning title. Cut at
+           the topmost gap regardless and the slice lands *inside* the columns
+           instead: on a figure built from two side-by-side panels that shears
+           it into horizontal bands, and reading each band left-to-right
+           interleaves the panels a row at a time. Take the spanner off first
+           and what remains can find its own gutter. */
+        const wide = spanX(bs);
+        const spanners = bs.filter((b) => b.x1 - b.x0 >= wide * 0.8);
+        if (h && spanners.length && spanners.length < bs.length) {
+          const firstSpanner = Math.min(...spanners.map((b) => b.y0));
+          const above = gaps.filter((g) => g.end <= firstSpanner);
+          // the gap immediately above it, so everything before stays together
+          if (above.length) h = above[above.length - 1];
+        }
         if (h) {
           cut(bs.filter((b) => b.y1 <= h.start), depth + 1);
           cut(bs.filter((b) => b.y0 >= h.end), depth + 1);
@@ -897,10 +914,39 @@
         if (!groups.has(col)) groups.set(col, []);
         groups.get(col).push(f);
       }
+      /* Leftovers on opposite sides of a region the model *did* claim are
+         unrelated: the model's own block lies between them. Segmenting them
+         together spreads a handful of scraps over most of the page, and a
+         region that empty trips the "a few small labels over a large area"
+         graphic test — on this paper a stray author name near the top and the
+         footer at the bottom became one figure covering two thirds of page 1. */
+      const claimedRows = out
+        .filter((b) => b.page === i)
+        .map((b) => [b.box.y, b.box.y + b.box.h]);
+      const top = (f) => (pg.H - f.y - f.h) / pg.H;
+      const bottom = (f) => (pg.H - f.y) / pg.H;
+      const runsOf = (frs) => {
+        const sorted = frs.slice().sort((a, b) => top(a) - top(b));
+        const runs = [];
+        let cur = [];
+        let reach = -Infinity;
+        for (const f of sorted) {
+          const parted = cur.length &&
+            claimedRows.some(([c0, c1]) => c0 >= reach - 0.002 && c1 <= top(f) + 0.002);
+          if (parted) { runs.push(cur); cur = []; }
+          cur.push(f);
+          reach = Math.max(reach, bottom(f));
+        }
+        if (cur.length) runs.push(cur);
+        return runs;
+      };
+
       const found = [];
       for (const col of [...groups.keys()].sort((a, b) => a - b)) {
-        for (const region of segmentRegions(groups.get(col), pg.W)) {
-          linesToBlocks(region.lines, i, pg.W, pg.H, found, { kind: region.kind });
+        for (const run of runsOf(groups.get(col))) {
+          for (const region of segmentRegions(run, pg.W)) {
+            linesToBlocks(region.lines, i, pg.W, pg.H, found, { kind: region.kind });
+          }
         }
       }
       recovered += found.length;
