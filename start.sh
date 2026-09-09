@@ -95,7 +95,22 @@ if [ "$want_sidecar" = 1 ]; then
   echo "sidecar   http://127.0.0.1:$sidecar_port"
 fi
 
-( cd "$root" && exec python3 -m http.server "$port" --bind 127.0.0.1 ) \
+# http.server sends no Cache-Control, so the browser falls back to heuristic
+# caching and will reuse a js/*.js for minutes or hours based on its age. After
+# an edit that looks exactly like the bug you just fixed still being there, so
+# serve everything no-store instead.
+( cd "$root" && exec python3 -c '
+import sys
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+
+class NoStore(SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store, must-revalidate")
+        self.send_header("Pragma", "no-cache")
+        super().end_headers()
+
+ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), NoStore).serve_forever()
+' "$port" ) \
     > >(prefix page) 2>&1 &
 pids+=("$!")
 echo "reader    http://localhost:$port"
