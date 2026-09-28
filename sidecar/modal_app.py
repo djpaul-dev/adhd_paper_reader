@@ -4,6 +4,10 @@ Focus Reader parsing service, on a GPU, via Modal.
 Same contract as the local `server.py` — `GET /health` and `POST /parse`, both
 returning the same JSON — so the reader only needs its service URL changed.
 
+It also serves the reader itself, from the same URL. Sharing an origin with the
+parser means no CORS to configure and no service URL to paste: open the endpoint
+in a browser and the page is there, already knowing where its parser lives.
+
     modal deploy modal_app.py
 
 **This one is not local.** The PDF is uploaded to Modal to be parsed. The local
@@ -25,6 +29,7 @@ import json
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Any
 
 import modal
@@ -240,7 +245,17 @@ def _blocks(doc: Any) -> list[dict[str, Any]]:
 # HTTP surface — mirrors server.py so the browser client is unchanged.
 # ---------------------------------------------------------------------------
 
-web_image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi[standard]")
+# The reader is three directories of static files next to this one.
+READER_SRC = Path(__file__).resolve().parent.parent
+READER_DIR = "/reader"
+
+web_image = (
+    modal.Image.debian_slim(python_version="3.12")
+    .pip_install("fastapi[standard]")
+    .add_local_file(READER_SRC / "index.html", f"{READER_DIR}/index.html")
+    .add_local_dir(READER_SRC / "css", f"{READER_DIR}/css")
+    .add_local_dir(READER_SRC / "js", f"{READER_DIR}/js")
+)
 
 
 @app.function(image=web_image, volumes={RESULT_CACHE: cache_volume}, timeout=1800)
@@ -249,6 +264,7 @@ web_image = modal.Image.debian_slim(python_version="3.12").pip_install("fastapi[
 def web():
     from fastapi import FastAPI, File, HTTPException, UploadFile
     from fastapi.middleware.cors import CORSMiddleware
+    from fastapi.staticfiles import StaticFiles
 
     api = FastAPI(title="Focus Reader parser (Modal)")
     # The reader is served from a local static server, so it is cross-origin.
@@ -318,5 +334,26 @@ def web():
         except Exception:
             pass
         return {**payload, "cached": False}
+
+    class Reader(StaticFiles):
+        """Static files that are always revalidated.
+
+        Not no-store: the browser may keep the bytes and will get a 304 back
+        when they have not changed. But it must ask. A stale js/*.js after a
+        deploy looks exactly like the bug you just fixed still being there,
+        and that is an expensive hour to lose.
+        """
+
+        def is_not_modified(self, response_headers, request_headers) -> bool:
+            return super().is_not_modified(response_headers, request_headers)
+
+        async def get_response(self, path: str, scope):
+            response = await super().get_response(path, scope)
+            response.headers["Cache-Control"] = "no-cache, must-revalidate"
+            return response
+
+    # Mounted last so /health, /diag and /parse keep their paths: Starlette
+    # matches routes in the order they were added.
+    api.mount("/", Reader(directory=READER_DIR, html=True), name="reader")
 
     return api
