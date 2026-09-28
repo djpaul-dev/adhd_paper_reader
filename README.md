@@ -30,6 +30,44 @@ stops both on Ctrl-C. `./start.sh --no-sidecar` for the page alone; `PORT` and
 
 Open `sample-paper.pdf` (included) to try it immediately.
 
+## Host it
+
+`sidecar/modal_app.py` serves the reader as well as the parser, so one deploy
+puts both behind one URL:
+
+```bash
+modal deploy sidecar/modal_app.py
+```
+
+Sharing an origin is the point. There is no CORS to configure, and a page served
+from anywhere but your own machine fills its parser URL in from its own origin —
+so high-accuracy mode is a toggle rather than a setup step. `/health`, `/parse`
+and `/diag` keep their paths; the static mount goes on last, because Starlette
+matches routes in the order they were added.
+
+Only `index.html`, `css/` and `js/` are uploaded; pdf.js comes from a CDN. They
+are mounted rather than baked into the image, so a front-end change redeploys in
+about two seconds — only editing the image's install steps forces a rebuild.
+
+Static files are served `no-cache` rather than `no-store`: the browser may keep
+the bytes and gets a 304 when they have not changed, but it has to ask. A stale
+`js/*.js` after a deploy looks exactly like the bug you just fixed still being
+there, which is an expensive hour to lose.
+
+**Know what a deployed copy is before you hand out the link.**
+
+- It is **public and unauthenticated**. Anyone holding the URL can POST a PDF and
+  start a GPU. Gate it with `@modal.asgi_app(requires_proxy_auth=True)`, or check
+  a shared token in middleware, or `modal app stop` it when you are not using it.
+- Parses are **cached with no expiry**, in a Modal volume keyed by a hash of the
+  file, holding the text extracted from it. Reading one back needs the exact file
+  to recompute the hash, so it is not browsable, but nothing ages out.
+- High-accuracy mode **uploads the PDF**. That is true locally too, but on a
+  hosted copy the URL is pre-filled, so it is one click away for anyone you send
+  the link to.
+- Over HTTPS the local sidecar is mixed content and the browser blocks it, so a
+  hosted copy offers the built-in parser and the GPU one — not the local one.
+
 ---
 
 ## What's in it
@@ -314,6 +352,7 @@ js/pdfview.js         PDF load, page render + text layer, line/paragraph/sentenc
 js/paperview.js       spotlight + navigation over the original rendered pages
 js/textview.js        clean-reflow view: sentence spans, bionic, typography
 js/speech.js          read-aloud: voice, speed, chunked utterances
+js/citations.js       finds in-text citations: marked on the page, skipped aloud
 js/sidecar.js         optional parsing service: health, upload, progress, fallback
 sidecar/server.py     the local service (Docling on CPU), page progress, cache
 sidecar/modal_app.py  the same service on a GPU via Modal (uploads the PDF)
