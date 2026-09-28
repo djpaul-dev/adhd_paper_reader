@@ -260,6 +260,8 @@
       FR.$("#tb-spotlight").classList.toggle("is-active", S.spotlight);
       FR.$("#tb-ruler").classList.toggle("is-active", S.ruler);
       FR.$("#tb-sentence").classList.toggle("is-active", S.sentenceMode);
+      FR.$("#tb-cite").classList.toggle("is-active", S.citations);
+      FR.$("#reader").classList.toggle("cite-on", S.citations);
       FR.$("#reader").classList.toggle("spotlight-on", S.spotlight);
       FR.$("#reading-ruler").hidden = !S.ruler;
     },
@@ -318,6 +320,12 @@
         }));
       FR.$("#tb-ruler").addEventListener("click", () =>
         flip("ruler", "#tb-ruler", (on) => (FR.$("#reading-ruler").hidden = !on)));
+      FR.$("#tb-cite").addEventListener("click", () =>
+        flip("citations", "#tb-cite", (on) => {
+          FR.$("#reader").classList.toggle("cite-on", on);
+          FR.text.repaintAll();
+          FR.paper.refreshSpotlight();
+        }));
       FR.$("#tb-sentence").addEventListener("click", () =>
         flip("sentenceMode", "#tb-sentence", () => this.rebuildUnits()));
 
@@ -402,6 +410,7 @@
           case "ArrowDown": e.preventDefault(); this.nav(1, true); break;
           case "ArrowUp": e.preventDefault(); this.nav(-1, true); break;
           case "b": FR.$("#tb-bionic").click(); break;
+          case "c": FR.$("#tb-cite").click(); break;
           case "f": FR.$("#tb-spotlight").click(); break;
           case "r": FR.$("#tb-ruler").click(); break;
           case "t": FR.timer.toggle(); break;

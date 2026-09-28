@@ -22,7 +22,16 @@
   }
   function paintSpan(node) {
     const raw = node.dataset.raw;
-    node.innerHTML = FR.settings.bionic ? bionic(raw) : FR.escape(raw);
+    const ink = (t) => (FR.settings.bionic ? bionic(t) : FR.escape(t));
+    if (!FR.cite.on()) {
+      node.innerHTML = ink(raw);
+      return;
+    }
+    // citations are never bionic — the point is to pull the eye off them
+    node.innerHTML = FR.cite
+      .segments(raw)
+      .map((s) => (s.cite ? '<span class="cite">' + FR.escape(s.text) + "</span>" : ink(s.text)))
+      .join("");
   }
 
   /* ---------- render ---------- */

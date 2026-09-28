@@ -1328,6 +1328,19 @@
       }));
     },
 
+    /* Where the citations inside one reading unit sit on the page. Same
+       machinery the sentence marks use, over a narrower range. */
+    citeMarks(unitIndex) {
+      const u = this.units[unitIndex];
+      const b = u && this.blocks[u.block];
+      if (!b) return [];
+      const out = [];
+      for (const c of FR.cite.find(u.text)) {
+        out.push(...unitGeometry(b, u.start + c.start, u.start + c.end).marks);
+      }
+      return out;
+    },
+
     firstUnitOfBlock(blockIndex) {
       const i = this.units.findIndex((u) => u.block >= blockIndex);
       return i < 0 ? Math.max(0, this.units.length - 1) : i;

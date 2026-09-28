@@ -93,6 +93,7 @@ FR.settings = Object.assign(
     spotlight: true,
     ruler: false,
     sentenceMode: true, // step a sentence at a time, not a whole paragraph
+    citations: true,    // mark in-text citations and step over them when reading aloud
     wpm: 220,
     timer: { focus: 25, short: 5, long: 20, chime: true },
     speech: { enabled: false, voice: "", rate: 1 },
@@ -113,6 +114,17 @@ FR.settings.sidecar = Object.assign(
   { mode: "off", localUrl: "http://127.0.0.1:8077", cloudUrl: "", timeoutMs: 900000 },
   FR.settings.sidecar
 );
+/* Served from somewhere other than this machine: the reader and its GPU parser
+   are one deployment, so the service is at this very origin. Fills a blank
+   only — a URL set by hand is left alone. */
+if (
+  !FR.settings.sidecar.cloudUrl &&
+  /^https?:$/.test(location.protocol) &&
+  !/^(localhost|127\.0\.0\.1|\[::1\])$/i.test(location.hostname)
+) {
+  FR.settings.sidecar.cloudUrl = location.origin;
+}
+
 {
   // migrate the older { enabled, url } shape
   const s = FR.settings.sidecar;

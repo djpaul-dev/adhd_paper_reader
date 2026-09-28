@@ -21,26 +21,26 @@
 [data-theme="sepia"] {
   --bg: #f4ecd8;      --bg-2: #efe5cc;   --surface: #fbf5e6;
   --ink: #3a3226;     --ink-soft: #6b6047; --line: #ddceac;
-  --accent: #9a5b34;  --accent-ink: #fff; --mark: #ffe6a8;
+  --accent: #9a5b34;  --accent-ink: #fff; --mark: #ffe6a8; --cite: #2f7d6b;
   --ok: #4b7d54;      --warn: #b4632a;
 }
 [data-theme="light"] {
   --bg: #f2f4f7;      --bg-2: #e9edf3;   --surface: #ffffff;
   --ink: #1c2430;     --ink-soft: #5b6675; --line: #dde3ec;
-  --accent: #2d6cdf;  --accent-ink: #fff; --mark: #fff3ba;
+  --accent: #2d6cdf;  --accent-ink: #fff; --mark: #fff3ba; --cite: #0f8a6a;
   --ok: #2f855a;      --warn: #c05621;
 }
 [data-theme="dark"] {
   --bg: #14171c;      --bg-2: #1b1f26;   --surface: #21262e;
   --ink: #e7e3da;     --ink-soft: #a7a99f; --line: #333b45;
-  --accent: #e0a458;  --accent-ink: #1b1f26; --mark: #6a5a2a;
+  --accent: #e0a458;  --accent-ink: #1b1f26; --mark: #6a5a2a; --cite: #6fd3b4;
   --ok: #6bbf7b;      --warn: #e0a458;
   --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px rgba(0,0,0,.35);
 }
 [data-theme="contrast"] {
   --bg: #000000;      --bg-2: #000000;   --surface: #0a0a0a;
   --ink: #ffffff;     --ink-soft: #d8d8d8; --line: #ffffff;
-  --accent: #ffd400;  --accent-ink: #000; --mark: #005fcc;
+  --accent: #ffd400;  --accent-ink: #000; --mark: #005fcc; --cite: #00e5ff;
   --ok: #00e676;      --warn: #ffd400;
   --dim-opacity: 0.4;
   --shadow: none;
@@ -451,6 +451,23 @@ mark { background: var(--mark); color: inherit; padding: 0 .1em; border-radius: 
   border-bottom: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
   border-radius: 2px;
   pointer-events: none;
+}
+
+/* In-text citations. A distinct hue from the spotlight accent, so "this is the
+   sentence you are on" and "this part of it is a citation" never read as the
+   same signal. Drawn over the sentence mark, hence the higher z-index. */
+.cite-mark {
+  position: absolute; z-index: 2;
+  background: color-mix(in srgb, var(--cite) 22%, transparent);
+  border-bottom: 2px dotted color-mix(in srgb, var(--cite) 70%, transparent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+/* Clean-text view: dimmed rather than boxed, so the eye slides past it. The
+   colour still marks it as a citation when you go looking. */
+.cite-on .sent .cite {
+  color: var(--cite);
+  opacity: .72;
 }
 
 /* translucent highlight rectangle over a block */

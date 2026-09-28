@@ -115,17 +115,20 @@
     // tight rectangles over the sentence itself: partial first line,
     // whole middle lines, partial last line
     renderMarks(u, b) {
-      FR.$$(".sent-mark", host()).forEach((n) => n.remove());
-      if (!b || !b.pageEl || !u.marks || u.marks.length < 1) return;
-      if (u.of <= 1) return; // whole paragraph is the unit — the frame says it all
-      u.marks.forEach((m) => {
-        const el = FR.el("div", { class: "sent-mark" });
+      FR.$$(".sent-mark, .cite-mark", host()).forEach((n) => n.remove());
+      if (!b || !b.pageEl) return;
+      const put = (m, cls) => {
+        const el = FR.el("div", { class: cls });
         el.style.left = m.x * 100 + "%";
         el.style.top = m.y * 100 + "%";
         el.style.width = m.w * 100 + "%";
         el.style.height = m.h * 100 + "%";
         b.pageEl.append(el);
-      });
+      };
+      // in paragraph mode the whole block is the unit and the frame says it all
+      if (u.marks && u.marks.length && u.of > 1) u.marks.forEach((m) => put(m, "sent-mark"));
+      // citations are marked on the sentence being read, not the whole page
+      if (FR.cite.on()) FR.pdf.citeMarks(active).forEach((m) => put(m, "cite-mark"));
     },
 
     next() { if (active < FR.pdf.units.length - 1) { active++; this.refreshSpotlight(); } },

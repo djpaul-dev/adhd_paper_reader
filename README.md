@@ -52,12 +52,19 @@ Open `sample-paper.pdf` (included) to try it immediately.
 - **Reading ruler** — a band that follows your cursor and mutes everything else
   (**R**), in either mode.
 - **Read aloud** (**S**) — the browser's own speech synthesis reads the spotlighted
-  sentence. Pick a voice, and a speed from **0.5× to 4×** — either from the
-  presets (1× / 1.5× / 2× / 2.5× / 3×) or the slider for anything between.
-  Changing speed takes effect on the sentence being read, not the next one.
-  Most voices stay clear to about 2.5× and distort past that, which is why the
-  presets stop there even though the slider does not. 🔊 in the bottom bar
-  replays the current sentence.
+  sentence. Pick a voice and a speed from **0.5× to 2×**. Changing speed takes
+  effect on the sentence being read, not the next one. The cap is 2× because
+  past roughly that most engines stop actually getting faster — Windows SAPI
+  voices saturate, and Chrome's network-backed "Google …" voices are synthesised
+  at a fixed rate and ignore the setting — and slider travel that changes nothing
+  reads as a broken control. 🔊 in the bottom bar replays the current sentence.
+- **Citations** (**C**) — in-text citations are found and marked in a colour of
+  their own, and read-aloud steps over them. "(Peters et al., 2018; Devlin et al.,
+  2019)" spoken mid-clause is thirty syllables of surname and year, and on the
+  page it is the thing your eye snags on and then has to find its way back from.
+  Deliberately conservative: `[3]` and anything parenthesised carrying a year are
+  citations, while `(see Figure 3)`, `(GSM8K)` and `(1)` are left alone — skipping
+  a citation costs nothing, but swallowing half a sentence would.
 - **Auto-pace** (**Space**) — one control: the chip is lit while it is running, and
   the speed slider appears with it. It advances on its own. With **Read aloud** on, the *voice* sets the
   pace: one sentence per utterance, and the spotlight moves when that sentence
@@ -101,6 +108,7 @@ modes — switch freely.
 | `↓` / `↑` | Next / previous paragraph |
 | `Space` | Start / stop auto-pace |
 | `B` | Bionic reading |
+| `C` | Citations: mark them, and skip them when reading aloud |
 | `F` | Spotlight (dim other paragraphs) |
 | `R` | Reading ruler |
 | `S` | Read aloud on / off |

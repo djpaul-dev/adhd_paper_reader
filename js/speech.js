@@ -67,6 +67,9 @@
     },
 
     speak(text, onend) {
+      // A citation read aloud is thirty syllables of surname and year in the
+      // middle of a clause; the sentence is easier to follow without it.
+      if (text && FR.cite && FR.cite.on()) text = FR.cite.strip(text);
       if (!this.supported() || !text) {
         onend && onend();
         return;
