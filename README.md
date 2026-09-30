@@ -49,6 +49,25 @@ Only `index.html`, `css/` and `js/` are uploaded; pdf.js comes from a CDN. They
 are mounted rather than baked into the image, so a front-end change redeploys in
 about two seconds — only editing the image's install steps forces a rebuild.
 
+**A successful deploy does not always change what is served.** Those files are
+mounted into the web container, and a container that is already warm keeps
+serving the copy it started with. `modal deploy` reports every mount as created,
+finishes in a second, and the old stylesheet still comes back. Stop the app so
+the container is replaced:
+
+```bash
+modal app stop focus-reader-parser -y
+modal deploy sidecar/modal_app.py
+```
+
+Check what is actually live rather than trusting the deploy output — compare a
+file's served size against the local one:
+
+```bash
+curl -s -o /dev/null -w '%{size_download}\n' "$ENDPOINT/css/styles.css"
+wc -c < css/styles.css
+```
+
 Static files are served `no-cache` rather than `no-store`: the browser may keep
 the bytes and gets a 304 when they have not changed, but it has to ask. A stale
 `js/*.js` after a deploy looks exactly like the bug you just fixed still being
