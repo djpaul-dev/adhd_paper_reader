@@ -87,10 +87,19 @@ button { font-family: inherit; }
   display: grid;
   grid-template-columns: 320px minmax(0, 1fr) 340px;
   min-height: 0;
+  position: relative; /* the panels become overlays on a narrow window */
 }
 .layout.left-collapsed { grid-template-columns: 0 minmax(0,1fr) 340px; }
 .layout.right-collapsed { grid-template-columns: 320px minmax(0,1fr) 0; }
 .layout.left-collapsed.right-collapsed { grid-template-columns: 0 minmax(0,1fr) 0; }
+
+/* Pin each child to its own column. Collapsing a panel hides it, and a hidden
+   grid item is out of the flow entirely — so with automatic placement the
+   reader slid up into the panel's column, which collapsing had just set to
+   zero width. The whole page went blank on a working layout. */
+.panel-left { grid-column: 1; }
+.reader { grid-column: 2; }
+.panel-right { grid-column: 3; }
 
 .panel {
   background: var(--bg-2);
@@ -591,7 +600,16 @@ kbd {
 
 /* ============ responsive ============ */
 @media (max-width: 1100px) {
-  .layout { grid-template-columns: 0 1fr 0; }
+  /* The panels slide over the reader instead of sitting beside it, so they are
+     out of the flow and the reader wants the whole width. It has to be said for
+     the collapsed variants too: those selectors are more specific than this one
+     and would otherwise keep reserving a column for a panel that is no longer
+     in the grid. */
+  .layout,
+  .layout.left-collapsed,
+  .layout.right-collapsed,
+  .layout.left-collapsed.right-collapsed { grid-template-columns: minmax(0, 1fr); }
+  .panel-left, .panel-right, .reader { grid-column: 1; }
   .panel { position: absolute; top: 0; bottom: 0; width: 320px; z-index: 30; box-shadow: var(--shadow); }
   .panel-left { left: 0; }
   .panel-right { right: 0; left: auto; }
